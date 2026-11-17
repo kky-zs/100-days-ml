@@ -3,6 +3,7 @@
 ### Phase 1: Practical ML core
 - [X] Day 1: Training framework
 - [X] Day 2: Autodiff and optimizers
+- [ ] Day 3: Tabular pipelines 
 
 ## Daily Takeaways
 
