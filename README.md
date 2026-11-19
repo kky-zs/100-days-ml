@@ -3,7 +3,7 @@
 ### Phase 1: Practical ML core
 - [X] Day 1: Training framework
 - [X] Day 2: Autodiff and optimizers
-- [ ] Day 3: Tabular pipelines 
+- [X] Day 3: Tabular pipelines 
 
 ## Daily Takeaways
 
@@ -138,5 +138,64 @@ It’s the standard choice for transformers.
 Adam ended best, then momentum, SGD and RMSprop.
 
 RMSprop was hampered by its constant learning rate, which makes it hover near the minimum, and SGD by an early overshoot.
+
+</details>
+
+
+<details>
+<summary><strong>Day 3 — Tabular Pipelines</strong></summary>
+
+### 1. Why do you split off the test set before exploring or preprocessing the data?
+
+Any decision informed by test data (an imputation value, a scaling statistic, a chosen feature, a tuned hyperparameter) lets information about the test set into training, so the final score is optimistic.
+
+### 2. What is data leakage? Name three kinds with an example each.
+
+Leakage is information that wouldn’t be available at prediction time influencing training or evaluation, which makes performance look better than it will be.
+
+- **Preprocessing leakage:** A feature selector fitted on all data before cross-validation.
+- **Target leakage:** A feature derived from the outcome or recorded after it, like `post_outcome_flag`.
+- **Group or duplicate leakage:** The same customer or patient in both train and validation, so the model effectively memorizes people.
+
+Temporal leakage (using the future to predict the past) is a fourth kind.
+
+### 3. Why does a `Pipeline` prevent preprocessing leakage during cross-validation?
+
+Cross-validation fits the entire pipeline separately on each fold’s training part.
+
+The validation fold is only transformed using statistics (medians, means, category lists, selected features) learned from that fold’s training part.
+
+No step ever sees the validation labels or values during fitting.
+
+The same object also guarantees identical preprocessing at prediction time.
+
+### 4. Why is accuracy misleading on this dataset, and what do you use instead?
+
+About 76% of people earn ≤ $50K, so always predicting "≤ $50K" gets about 76% accuracy while finding zero high earners (ROC AUC 0.5, recall 0).
+
+Use:
+
+- **ROC AUC:** Ranking quality.
+- **PR AUC or average precision:** Focused on the rare class, compared against the 0.24 base rate.
+- **Precision, recall and F1:** At a chosen threshold.
+
+### 5. How did you detect the planted leak, and what are the warning signs in real projects?
+
+CV AUC jumped from about 0.9 to about 0.99 while the train and CV scores stayed close (so it wasn’t overfitting), and the single-feature scan showed one column alone reaching about 0.95 AUC, far above all others.
+
+In real projects, watch for:
+
+- Implausibly good scores.
+- One feature dominating importances.
+- Features named after outcomes or filled in after the fact.
+- A large drop between validation and production performance.
+
+### 6. When do you use `GroupKFold` or `TimeSeriesSplit` instead of plain `StratifiedKFold`?
+
+- **`StratifiedKFold`:** For independent rows where you need to preserve class balance.
+- **`GroupKFold`:** When multiple rows belong to one entity (patients, users, devices), so a group never appears on both sides of the split.
+- **`TimeSeriesSplit`:** When data is time-ordered, so you always train on the past and validate on the future.
+
+If you need both group integrity and class balance, `StratifiedGroupKFold` combines them.
 
 </details>
