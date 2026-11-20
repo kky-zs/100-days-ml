@@ -4,6 +4,7 @@
 - [X] Day 1: Training framework
 - [X] Day 2: Autodiff and optimizers
 - [X] Day 3: Tabular pipelines 
+- [X] Day 4: Gradient boosting
 
 ## Daily Takeaways
 
@@ -197,5 +198,63 @@ In real projects, watch for:
 - **`TimeSeriesSplit`:** When data is time-ordered, so you always train on the past and validate on the future.
 
 If you need both group integrity and class balance, `StratifiedGroupKFold` combines them.
+
+</details>
+
+<details>
+<summary><strong>Day 4 — Gradient Boosting</strong></summary>
+
+### 1. Explain gradient boosting. What is each new tree fitted to?
+
+It builds a model as a sum of many small trees, added one at a time.
+
+At each round, you compute how wrong the current ensemble is (for logloss, the pseudo-residuals `y - p`, the negative gradient of the loss with respect to the current prediction), fit a small tree to those residuals, and add it with a small learning rate.
+
+It is gradient descent in function space: each tree is a step that reduces the loss.
+
+### 2. What do the learning rate and the number of trees do, and how do you choose them?
+
+The learning rate scales each tree’s contribution, so smaller values give smoother, better-generalizing models but need more trees.
+
+They trade off against each other (halve the rate, roughly double the trees).
+
+### 3. Main differences between XGBoost, LightGBM and CatBoost?
+
+- **XGBoost:** Second-order (gradient and Hessian) optimization with explicit regularization (`λ`, `γ`), level-wise trees, a mature ecosystem.
+- **LightGBM:** Histogram-based and leaf-wise growth, very fast on large data, but its asymmetric trees can overfit small data unless `num_leaves` and `min_child_samples` are controlled.
+- **CatBoost:** Ordered boosting plus ordered target statistics for categorical features, symmetric trees, and strong defaults, so it is the most robust when you have many categorical features and little time to tune.
+
+All three handle missing values natively.
+
+### 4. Why can’t you naively target-encode a categorical feature, and how does CatBoost avoid the problem?
+
+Replacing a category with the mean target of its rows uses each row’s own label in its own feature, which is target leakage: the model learns a shortcut that won’t exist at prediction time, especially for rare categories.
+
+CatBoost computes the statistic for each row using only the rows that come *before* it in a random permutation (ordered target statistics), so a row never sees its own label.
+
+### 5. Why use early stopping, and what is its subtle risk?
+
+It finds the number of trees where validation loss stops improving, which prevents overfitting without guessing and saves time.
+
+**The subtle risk:** The validation data now influences the model (it chose the stopping point), so the validation score is slightly optimistic.
+
+### 6. Why is Optuna better than grid search?
+
+Grid search spends most of its budget on combinations in unpromising regions and grows exponentially with the number of parameters.
+
+Optuna’s TPE sampler:
+- Learns from earlier trials and concentrates on promising regions.
+- Handles integer, float and log-scale parameters naturally.
+- Prunes clearly bad trials early.
+
+So the same compute explores far more of the space.
+
+### 7. What are the caveats of gain-based feature importance?
+
+It describes how the model uses features, not causal effect.
+
+- Correlated features split the credit between them.
+- High-cardinality or continuous features tend to look more important.
+- It’s computed on training data.
 
 </details>
